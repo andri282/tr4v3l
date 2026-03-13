@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Budget Planner</title>
+    <title>Travel Budget Planner Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -15,6 +15,7 @@
             --text: #2d3748;
             --bg: #f7fafc;
             --success: #38a169;
+            --gray: #718096;
         }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -24,7 +25,7 @@
             margin: 0;
         }
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
             background: #fff;
             padding: 30px;
@@ -34,15 +35,28 @@
         h1 {
             text-align: center;
             color: var(--primary);
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--gray);
             margin-bottom: 30px;
+            font-size: 0.9em;
         }
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            grid-column: 1 / -1;
+        }
         @media (max-width: 600px) {
-            .grid { grid-template-columns: 1fr; }
+            .grid, .grid-3 { grid-template-columns: 1fr; }
+            .action-buttons { flex-direction: column; }
         }
         .section-title {
             grid-column: 1 / -1;
@@ -62,76 +76,60 @@
             margin-bottom: 8px;
             font-size: 0.9em;
         }
-        input {
+        input, select {
             padding: 12px;
             border: 1px solid #cbd5e0;
             border-radius: 6px;
             font-size: 1em;
             transition: border-color 0.2s;
+            background-color: #fff;
         }
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
         }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
         button {
-            width: 100%;
             padding: 15px;
-            background-color: var(--primary);
             color: white;
             border: none;
             border-radius: 6px;
             font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 30px;
-            transition: background-color 0.2s;
+            transition: opacity 0.2s;
         }
-        button:hover {
-            background-color: #2c5282;
-        }
-        .btn-success {
-            background-color: var(--success);
-            margin-top: 20px;
-        }
-        .btn-success:hover {
-            background-color: #2f855a;
-        }
+        button:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary); flex: 2; }
+        .btn-secondary { background-color: var(--gray); flex: 1; }
+        .btn-success { background-color: var(--success); width: 100%; margin-top: 20px;}
+        
         .result-section {
             margin-top: 40px;
-            padding: 30px;
+            padding: 30px 0;
             background-color: var(--secondary);
             border-radius: 8px;
             display: none;
         }
-        
-        /* FIX ALIGNMENT: Pastikan area PDF full width dan kontennya di tengah */
         .pdf-area {
             background-color: #fff;
             padding: 30px 20px;
             border-radius: 8px;
             width: 100%;
             box-sizing: border-box;
-            /* FIX: Hapus margin: 0 auto; biar gak kepotong di PDF */
             text-align: center; 
         }
-        .pdf-area h2 {
-            margin-top: 0;
-            color: var(--text);
-        }
-        .total-cost {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #e53e3e;
-            margin: 15px 0;
-        }
-        .chart-container {
-            max-width: 450px;
-            margin: 40px auto 10px auto; /* Margin auto bikin chart selalu di tengah */
-        }
+        .pdf-area h2 { margin-top: 0; color: var(--text); }
+        .total-cost { font-size: 2.5em; font-weight: bold; color: #e53e3e; margin: 15px 0; }
+        .chart-container { max-width: 450px; margin: 40px auto 10px auto; }
         .rincian-list {
             text-align: left;
             margin: 20px auto 0 auto;
-            max-width: 600px; /* Dibatasi biar gak terlalu melebar */
+            max-width: 600px;
             font-size: 0.95em;
             color: #4a5568;
         }
@@ -142,15 +140,22 @@
             display: flex;
             justify-content: space-between;
         }
+        .loading-rates {
+            font-size: 0.8em;
+            color: #d69e2e;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>✈️ Travel Budget Planner</h1>
+    <div class="subtitle">Auto-Save • Multi-Currency • Smart Pax Calculation</div>
+    
     <form id="budgetForm">
         <div class="grid">
-            <div class="section-title">📌 Informasi Dasar</div>
+            <div class="section-title">📌 Informasi Dasar & Kurs</div>
             <div class="form-group">
                 <label>Destinasi Trip</label>
                 <input type="text" id="destination" placeholder="Misal: Malaysia" required>
@@ -159,52 +164,78 @@
                 <label>Durasi Trip (Hari)</label>
                 <input type="number" id="days" value="5" min="1" required>
             </div>
-            <div class="form-group">
-                <label>Total Rombongan (Orang)</label>
-                <input type="number" id="pax" value="3" min="1" required>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Mata Uang Input Harga</label>
+                <select id="currencyCode">
+                    <option value="IDR">IDR - Rupiah Indonesia</option>
+                    <option value="MYR">MYR - Ringgit Malaysia</option>
+                    <option value="THB">THB - Baht Thailand</option>
+                    <option value="SGD">SGD - Dollar Singapura</option>
+                    <option value="JPY">JPY - Yen Jepang</option>
+                    <option value="USD">USD - Dollar AS</option>
+                </select>
+                <div id="rateStatus" class="loading-rates">Mengambil data kurs terbaru...</div>
             </div>
-            <div class="form-group"></div>
+
+            <div class="section-title">👥 Anggota Trip (Pax)</div>
+            <div class="grid-3">
+                <div class="form-group">
+                    <label>Dewasa (>11 thn)</label>
+                    <input type="number" id="paxAdult" value="2" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Anak (2-11 thn)</label>
+                    <input type="number" id="paxChild" value="1" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Bayi (<2 thn)</label>
+                    <input type="number" id="paxInfant" value="0" min="0">
+                </div>
+            </div>
 
             <div class="section-title">🏨 Transportasi & Akomodasi</div>
             <div class="form-group">
-                <label>Tiket Pesawat/Kereta PP (per orang)</label>
-                <input type="number" id="flight" value="0" min="0" placeholder="Rp">
+                <label>Tiket Pesawat/Kereta PP (per orang dewasa)</label>
+                <input type="number" id="flight" value="0" min="0" placeholder="Nominal">
             </div>
             <div class="form-group">
-                <label>Penginapan (per kamar/malam)</label>
-                <input type="number" id="hotel" value="0" min="0" placeholder="Rp">
+                <label>Penginapan (Total per malam)</label>
+                <input type="number" id="hotel" value="0" min="0" placeholder="Nominal">
             </div>
 
             <div class="section-title">🍜 Kebutuhan Harian</div>
             <div class="form-group">
                 <label>Budget Makan Sekali (per orang)</label>
-                <input type="number" id="mealCost" value="0" min="0" placeholder="Rp">
+                <input type="number" id="mealCost" value="0" min="0" placeholder="Nominal">
             </div>
             <div class="form-group">
                 <label>Makan Berapa Kali Sehari?</label>
                 <input type="number" id="mealFreq" value="3" min="1">
             </div>
-            <div class="form-group">
-                <label>Transportasi Lokal (Total per hari)</label>
-                <input type="number" id="dailyTransport" value="0" min="0" placeholder="Sewa motor dll">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Transportasi Lokal (Total per hari untuk rombongan)</label>
+                <input type="number" id="dailyTransport" value="0" min="0" placeholder="Nominal sewa motor/grab dll">
             </div>
 
             <div class="section-title">🎒 Aktivitas & Lain-lain</div>
             <div class="form-group">
-                <label>Tiket Wisata (Total per orang)</label>
-                <input type="number" id="activities" value="0" min="0" placeholder="Rp">
+                <label>Tiket Wisata (Total per dewasa)</label>
+                <input type="number" id="activities" value="0" min="0" placeholder="Nominal">
             </div>
             <div class="form-group">
                 <label>Visa & Asuransi (per orang)</label>
-                <input type="number" id="visa" value="0" min="0" placeholder="Rp">
+                <input type="number" id="visa" value="0" min="0" placeholder="Nominal">
             </div>
-            <div class="form-group">
-                <label>Budget Oleh-oleh & Darurat (Total)</label>
-                <input type="number" id="shopping" value="0" min="0" placeholder="Rp">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Budget Oleh-oleh & Darurat (Total Rombongan)</label>
+                <input type="number" id="shopping" value="0" min="0" placeholder="Nominal">
             </div>
         </div>
 
-        <button type="button" onclick="calculateBudget()">Hitung Estimasi Budget</button>
+        <div class="action-buttons">
+            <button type="button" class="btn-primary" onclick="calculateBudget()">Hitung Estimasi Budget</button>
+            <button type="button" class="btn-secondary" id="shareBtn" onclick="generateShareLink()">🔗 Copy Link</button>
+        </div>
     </form>
 
     <div class="result-section" id="resultSection">
@@ -219,48 +250,128 @@
             </div>
         </div>
         
-        <button type="button" class="btn-success" id="downloadBtn" onclick="downloadPDF()">⬇️ Download Hasil Plan (PDF)</button>
+        <div style="padding: 0 30px;">
+            <button type="button" class="btn-success" id="downloadBtn" onclick="downloadPDF()">⬇️ Download Hasil Plan (PDF)</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // Daftarkan plugin Datalabels ke Chart.js
     Chart.register(ChartDataLabels);
-
     let budgetChartInstance = null;
     let currentDest = "";
+    let exchangeRates = {};
+
+    // 1. AUTO CURRENCY (Fetch API)
+    async function fetchExchangeRates() {
+        try {
+            const res = await fetch('https://api.exchangerate-api.com/v4/latest/IDR');
+            const data = await res.json();
+            exchangeRates = data.rates;
+            document.getElementById('rateStatus').innerText = "✅ Kurs Live berhasil dimuat!";
+            document.getElementById('rateStatus').style.color = "var(--success)";
+        } catch (error) {
+            document.getElementById('rateStatus').innerText = "⚠️ Gagal memuat kurs, perhitungan pakai Rupiah saja.";
+            document.getElementById('rateStatus').style.color = "#e53e3e";
+        }
+    }
+
+    // 2. AUTO SAVE & LOAD (LocalStorage + URL Params)
+    function saveToLocal() {
+        const inputs = document.querySelectorAll('input, select');
+        const data = {};
+        inputs.forEach(input => data[input.id] = input.value);
+        localStorage.setItem('travelBudget', JSON.stringify(data));
+    }
+
+    function loadSavedData() {
+        const params = new URLSearchParams(window.location.search);
+        const inputs = document.querySelectorAll('input, select');
+        
+        // Prioritaskan load dari URL (jika buka dari share link)
+        if (params.toString().length > 0) {
+            inputs.forEach(input => {
+                if (params.has(input.id)) input.value = params.get(input.id);
+            });
+            // Hapus parameter dari URL biar rapi kembali
+            window.history.replaceState({}, document.title, window.location.pathname);
+            // Otomatis hitung jika buka dari link
+            setTimeout(calculateBudget, 500); 
+        } 
+        // Kalau tidak ada URL param, load dari LocalStorage
+        else {
+            const saved = JSON.parse(localStorage.getItem('travelBudget'));
+            if (saved) {
+                inputs.forEach(input => {
+                    if (saved[input.id] !== undefined) input.value = saved[input.id];
+                });
+            }
+        }
+    }
+
+    // Trigger save setiap ada perubahan input
+    document.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', saveToLocal);
+    });
+
+    // 3. SHARE LINK
+    function generateShareLink() {
+        const inputs = document.querySelectorAll('input, select');
+        const params = new URLSearchParams();
+        inputs.forEach(input => params.set(input.id, input.value));
+        
+        const shareUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            const btn = document.getElementById('shareBtn');
+            const orig = btn.innerText;
+            btn.innerText = '✅ Link Tersalin!';
+            setTimeout(() => btn.innerText = orig, 2000);
+        });
+    }
 
     function formatRupiah(angka) {
-        return new Intl.NumberFormat('id-ID', { 
-            style: 'currency', 
-            currency: 'IDR', 
-            minimumFractionDigits: 0 
-        }).format(angka);
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
     }
 
     function calculateBudget() {
         const dest = document.getElementById('destination').value || "Destinasi";
         currentDest = dest;
         const days = parseInt(document.getElementById('days').value) || 0;
-        const pax = parseInt(document.getElementById('pax').value) || 0;
         
-        const flight = parseFloat(document.getElementById('flight').value) || 0;
-        const hotel = parseFloat(document.getElementById('hotel').value) || 0;
-        const mealCost = parseFloat(document.getElementById('mealCost').value) || 0;
+        const paxAdult = parseInt(document.getElementById('paxAdult').value) || 0;
+        const paxChild = parseInt(document.getElementById('paxChild').value) || 0;
+        const paxInfant = parseInt(document.getElementById('paxInfant').value) || 0;
+        const totalPax = paxAdult + paxChild + paxInfant;
+
+        // Ambil nilai kurs yang dipilih
+        const selectedCurrency = document.getElementById('currencyCode').value;
+        const rate = exchangeRates[selectedCurrency] || 1; 
+        const multiplier = 1 / rate; // Rumus konversi ke Rupiah
+        
+        const flight = (parseFloat(document.getElementById('flight').value) || 0) * multiplier;
+        const hotel = (parseFloat(document.getElementById('hotel').value) || 0) * multiplier;
+        const mealCost = (parseFloat(document.getElementById('mealCost').value) || 0) * multiplier;
         const mealFreq = parseInt(document.getElementById('mealFreq').value) || 0;
-        const dailyTransport = parseFloat(document.getElementById('dailyTransport').value) || 0;
-        const activities = parseFloat(document.getElementById('activities').value) || 0;
-        const visa = parseFloat(document.getElementById('visa').value) || 0;
-        const shopping = parseFloat(document.getElementById('shopping').value) || 0;
+        const dailyTransport = (parseFloat(document.getElementById('dailyTransport').value) || 0) * multiplier;
+        const activities = (parseFloat(document.getElementById('activities').value) || 0) * multiplier;
+        const visa = (parseFloat(document.getElementById('visa').value) || 0) * multiplier;
+        const shopping = (parseFloat(document.getElementById('shopping').value) || 0) * multiplier;
 
         const nights = days > 1 ? days - 1 : 1;
         
-        const totalFlight = flight * pax;
+        // LOGIKA HARGA BERDASARKAN KATEGORI UMUR
+        // Pesawat: Dewasa 100%, Anak 100%, Bayi 10%
+        const totalFlight = (flight * paxAdult) + (flight * paxChild) + (flight * 0.1 * paxInfant);
+        // Hotel: Asumsi biaya total kamar per malam
         const totalHotel = hotel * nights;
-        const totalMeals = mealCost * mealFreq * days * pax;
+        // Makan: Bayi tidak dihitung budget khusus
+        const totalMeals = mealCost * mealFreq * days * (paxAdult + paxChild);
         const totalTransport = dailyTransport * days;
-        const totalActivities = activities * pax;
-        const totalVisa = visa * pax;
+        // Wisata: Anak diskon 50%, Bayi Gratis
+        const totalActivities = (activities * paxAdult) + (activities * 0.5 * paxChild);
+        // Visa/Asuransi: Semua bayar full
+        const totalVisa = visa * totalPax;
         const totalShopping = shopping;
 
         const grandTotal = totalFlight + totalHotel + totalMeals + totalTransport + totalActivities + totalVisa + totalShopping;
@@ -270,12 +381,12 @@
         document.getElementById('totalCost').innerText = formatRupiah(grandTotal);
 
         document.getElementById('rincianList').innerHTML = `
-            <p><span>✈️ Transportasi Utama (${pax} pax)</span> <span>${formatRupiah(totalFlight)}</span></p>
+            <p><span>✈️ Tiket Pesawat/Kereta (${totalPax} Pax)</span> <span>${formatRupiah(totalFlight)}</span></p>
             <p><span>🏨 Akomodasi (${nights} malam)</span> <span>${formatRupiah(totalHotel)}</span></p>
-            <p><span>🍜 Konsumsi (${days} hari, ${pax} pax)</span> <span>${formatRupiah(totalMeals)}</span></p>
+            <p><span>🍜 Konsumsi (${days} hari, ${paxAdult+paxChild} Pax bayar)</span> <span>${formatRupiah(totalMeals)}</span></p>
             <p><span>🚕 Transportasi Lokal (${days} hari)</span> <span>${formatRupiah(totalTransport)}</span></p>
             <p><span>🎒 Tiket Wisata & Aktivitas</span> <span>${formatRupiah(totalActivities)}</span></p>
-            <p><span>🛂 Visa & Lain-lain</span> <span>${formatRupiah(totalVisa + totalShopping)}</span></p>
+            <p><span>🛂 Visa, Darurat & Lain-lain</span> <span>${formatRupiah(totalVisa + totalShopping)}</span></p>
         `;
 
         renderChart([totalFlight, totalHotel, totalMeals, totalTransport, totalActivities, (totalVisa + totalShopping)], grandTotal);
@@ -284,9 +395,7 @@
 
     function renderChart(dataValues, grandTotal) {
         const ctx = document.getElementById('budgetChart').getContext('2d');
-        if (budgetChartInstance) {
-            budgetChartInstance.destroy();
-        }
+        if (budgetChartInstance) budgetChartInstance.destroy();
 
         budgetChartInstance = new Chart(ctx, {
             type: 'doughnut',
@@ -303,18 +412,13 @@
                 responsive: true,
                 animation: { duration: 0 },
                 plugins: {
-                    legend: { 
-                        position: 'bottom',
-                        labels: { padding: 20 }
-                    },
-                    // Settingan plugin persentase
+                    legend: { position: 'bottom', labels: { padding: 20 } },
                     datalabels: {
                         color: '#fff',
                         font: { weight: 'bold', size: 14 },
                         formatter: (value) => {
-                            if (value === 0 || grandTotal === 0) return null; // Sembunyikan kalau 0%
-                            let percentage = ((value / grandTotal) * 100).toFixed(1) + '%';
-                            return percentage;
+                            if (value === 0 || grandTotal === 0) return null;
+                            return ((value / grandTotal) * 100).toFixed(1) + '%';
                         }
                     }
                 }
@@ -331,15 +435,10 @@
         btn.disabled = true;
 
         const opt = {
-            margin:       0.5, // UBAH KE SATU NILAI AGAR ADA MARGIN KIRI KANAN YANG AMAN
+            margin:       0.5,
             filename:     `Travel_Budget_${currentDest.replace(/\s+/g, '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true,
-                scrollY: 0
-                /* FIX: Hapus windowWidth biar gak dipaksa lebar layarnya */
-            },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
@@ -350,6 +449,12 @@
             });
         }, 500);
     }
+
+    // Jalankan init saat halaman pertama kali dibuka
+    window.onload = () => {
+        fetchExchangeRates(); // Tarik data API Kurs
+        loadSavedData();      // Cek URL Param atau isi form pakai LocalStorage
+    };
 </script>
 
 </body>
