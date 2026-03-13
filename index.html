@@ -103,7 +103,6 @@
             text-align: center;
             display: none;
         }
-        /* Style khusus area yang mau di-print PDF agar background putih bersih */
         .pdf-area {
             background-color: #fff;
             padding: 20px;
@@ -202,8 +201,7 @@
             <h2>Estimasi Budget ke <span id="resDest"></span></h2>
             <div class="total-cost" id="totalCost">Rp 0</div>
             
-            <div class="rincian-list" id="rincianList">
-                </div>
+            <div class="rincian-list" id="rincianList"></div>
 
             <div class="chart-container">
                 <canvas id="budgetChart"></canvas>
@@ -257,7 +255,6 @@
         document.getElementById('resDest').innerText = dest;
         document.getElementById('totalCost').innerText = formatRupiah(grandTotal);
 
-        // Update Rincian Teks
         document.getElementById('rincianList').innerHTML = `
             <p><span>✈️ Transportasi Utama (${pax} pax)</span> <span>${formatRupiah(totalFlight)}</span></p>
             <p><span>🏨 Akomodasi (${nights} malam)</span> <span>${formatRupiah(totalHotel)}</span></p>
@@ -289,9 +286,7 @@
             },
             options: {
                 responsive: true,
-                animation: {
-                    duration: 0 // Matikan animasi biar grafik langsung jadi saat di-download PDF
-                },
+                animation: { duration: 0 },
                 plugins: {
                     legend: { position: 'bottom' }
                 }
@@ -299,11 +294,10 @@
         });
     }
 
-function downloadPDF() {
+    function downloadPDF() {
         const element = document.getElementById('pdfContent');
         const btn = document.getElementById('downloadBtn');
         
-        // Ubah teks tombol jadi loading
         const originalText = btn.innerHTML;
         btn.innerHTML = '⏳ Menyiapkan PDF...';
         btn.disabled = true;
@@ -315,20 +309,19 @@ function downloadPDF() {
             html2canvas:  { 
                 scale: 2, 
                 useCORS: true,
-                scrollY: 0 // <-- INI FIX UNTUK MASALAH BLANK PUTIH
+                scrollY: 0 
             },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Beri jeda 500 milidetik agar scroll selesai dan grafik beres di-render
         setTimeout(() => {
             html2pdf().set(opt).from(element).save().then(() => {
-                // Kembalikan tombol ke kondisi semula
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             });
         }, 500);
     }
+</script>
 
 </body>
 </html>
