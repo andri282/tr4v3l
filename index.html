@@ -299,7 +299,7 @@
         });
     }
 
-    function downloadPDF() {
+function downloadPDF() {
         const element = document.getElementById('pdfContent');
         const btn = document.getElementById('downloadBtn');
         
@@ -312,18 +312,23 @@
             margin:       0.5,
             filename:     `Travel_Budget_${currentDest.replace(/\s+/g, '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true,
+                scrollY: 0 // <-- INI FIX UNTUK MASALAH BLANK PUTIH
+            },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Render PDF
-        html2pdf().set(opt).from(element).save().then(() => {
-            // Kembalikan tombol ke kondisi semula
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
+        // Beri jeda 500 milidetik agar scroll selesai dan grafik beres di-render
+        setTimeout(() => {
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Kembalikan tombol ke kondisi semula
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }, 500);
     }
-</script>
 
 </body>
 </html>
