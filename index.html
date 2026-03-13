@@ -111,7 +111,7 @@
             border-radius: 8px;
             width: 100%;
             box-sizing: border-box;
-            margin: 0 auto;
+            /* FIX: Hapus margin: 0 auto; biar gak kepotong di PDF */
             text-align: center; 
         }
         .pdf-area h2 {
@@ -331,14 +331,14 @@
         btn.disabled = true;
 
         const opt = {
-            margin:       [0.5, 0], // Margin atas/bawah 0.5, kiri/kanan 0 biar bisa ngisi full width
+            margin:       0.5, // UBAH KE SATU NILAI AGAR ADA MARGIN KIRI KANAN YANG AMAN
             filename:     `Travel_Budget_${currentDest.replace(/\s+/g, '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { 
                 scale: 2, 
                 useCORS: true,
-                scrollY: 0,
-                windowWidth: element.scrollWidth // Memaksa canvas membaca lebar elemen sebenarnya
+                scrollY: 0
+                /* FIX: Hapus windowWidth biar gak dipaksa lebar layarnya */
             },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
