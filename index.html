@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Budget Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2b6cb0;
+            --secondary: #edf2f7;
+            --text: #2d3748;
+            --bg: #f7fafc;
+            --success: #38a169;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .section-title {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 5px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        input {
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2c5282;
+        }
+        .btn-success {
+            background-color: var(--success);
+            margin-top: 20px;
+        }
+        .btn-success:hover {
+            background-color: #2f855a;
+        }
+        .result-section {
+            margin-top: 40px;
+            padding: 30px;
+            background-color: var(--secondary);
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        /* Style khusus area yang mau di-print PDF agar background putih bersih */
+        .pdf-area {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .total-cost {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #e53e3e;
+            margin: 15px 0;
+        }
+        .chart-container {
+            max-width: 400px;
+            margin: 30px auto 0;
+        }
+        .rincian-list {
+            text-align: left;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+        .rincian-list p {
+            margin: 5px 0;
+            border-bottom: 1px dashed #cbd5e0;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>✈️ Travel Budget Planner</h1>
+    <form id="budgetForm">
+        <div class="grid">
+            <div class="section-title">📌 Informasi Dasar</div>
+            <div class="form-group">
+                <label>Destinasi Trip</label>
+                <input type="text" id="destination" placeholder="Misal: Thailand" required>
+            </div>
+            <div class="form-group">
+                <label>Durasi Trip (Hari)</label>
+                <input type="number" id="days" value="5" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>Total Rombongan (Orang)</label>
+                <input type="number" id="pax" value="3" min="1" required>
+            </div>
+            <div class="form-group"></div>
+
+            <div class="section-title">🏨 Transportasi & Akomodasi</div>
+            <div class="form-group">
+                <label>Tiket Pesawat/Kereta PP (per orang)</label>
+                <input type="number" id="flight" value="0" min="0" placeholder="Rp">
+            </div>
+            <div class="form-group">
+                <label>Penginapan (per kamar/malam)</label>
+                <input type="number" id="hotel" value="0" min="0" placeholder="Rp">
+            </div>
+
+            <div class="section-title">🍜 Kebutuhan Harian</div>
+            <div class="form-group">
+                <label>Budget Makan Sekali (per orang)</label>
+                <input type="number" id="mealCost" value="0" min="0" placeholder="Rp">
+            </div>
+            <div class="form-group">
+                <label>Makan Berapa Kali Sehari?</label>
+                <input type="number" id="mealFreq" value="3" min="1">
+            </div>
+            <div class="form-group">
+                <label>Transportasi Lokal (Total per hari)</label>
+                <input type="number" id="dailyTransport" value="0" min="0" placeholder="Sewa motor dll">
+            </div>
+
+            <div class="section-title">🎒 Aktivitas & Lain-lain</div>
+            <div class="form-group">
+                <label>Tiket Wisata (Total per orang)</label>
+                <input type="number" id="activities" value="0" min="0" placeholder="Rp">
+            </div>
+            <div class="form-group">
+                <label>Visa & Asuransi (per orang)</label>
+                <input type="number" id="visa" value="0" min="0" placeholder="Rp">
+            </div>
+            <div class="form-group">
+                <label>Budget Oleh-oleh & Darurat (Total)</label>
+                <input type="number" id="shopping" value="0" min="0" placeholder="Rp">
+            </div>
+        </div>
+
+        <button type="button" onclick="calculateBudget()">Hitung Estimasi Budget</button>
+    </form>
+
+    <div class="result-section" id="resultSection">
+        <div id="pdfContent" class="pdf-area">
+            <h2>Estimasi Budget ke <span id="resDest"></span></h2>
+            <div class="total-cost" id="totalCost">Rp 0</div>
+            
+            <div class="rincian-list" id="rincianList">
+                </div>
+
+            <div class="chart-container">
+                <canvas id="budgetChart"></canvas>
+            </div>
+        </div>
+        
+        <button type="button" class="btn-success" id="downloadBtn" onclick="downloadPDF()">⬇️ Download Hasil Plan (PDF)</button>
+    </div>
+</div>
+
+<script>
+    let budgetChartInstance = null;
+    let currentDest = "";
+
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID', { 
+            style: 'currency', 
+            currency: 'IDR', 
+            minimumFractionDigits: 0 
+        }).format(angka);
+    }
+
+    function calculateBudget() {
+        const dest = document.getElementById('destination').value || "Destinasi";
+        currentDest = dest;
+        const days = parseInt(document.getElementById('days').value) || 0;
+        const pax = parseInt(document.getElementById('pax').value) || 0;
+        
+        const flight = parseFloat(document.getElementById('flight').value) || 0;
+        const hotel = parseFloat(document.getElementById('hotel').value) || 0;
+        const mealCost = parseFloat(document.getElementById('mealCost').value) || 0;
+        const mealFreq = parseInt(document.getElementById('mealFreq').value) || 0;
+        const dailyTransport = parseFloat(document.getElementById('dailyTransport').value) || 0;
+        const activities = parseFloat(document.getElementById('activities').value) || 0;
+        const visa = parseFloat(document.getElementById('visa').value) || 0;
+        const shopping = parseFloat(document.getElementById('shopping').value) || 0;
+
+        const nights = days > 1 ? days - 1 : 1;
+        
+        const totalFlight = flight * pax;
+        const totalHotel = hotel * nights;
+        const totalMeals = mealCost * mealFreq * days * pax;
+        const totalTransport = dailyTransport * days;
+        const totalActivities = activities * pax;
+        const totalVisa = visa * pax;
+        const totalShopping = shopping;
+
+        const grandTotal = totalFlight + totalHotel + totalMeals + totalTransport + totalActivities + totalVisa + totalShopping;
+
+        document.getElementById('resultSection').style.display = 'block';
+        document.getElementById('resDest').innerText = dest;
+        document.getElementById('totalCost').innerText = formatRupiah(grandTotal);
+
+        // Update Rincian Teks
+        document.getElementById('rincianList').innerHTML = `
+            <p><span>✈️ Transportasi Utama (${pax} pax)</span> <span>${formatRupiah(totalFlight)}</span></p>
+            <p><span>🏨 Akomodasi (${nights} malam)</span> <span>${formatRupiah(totalHotel)}</span></p>
+            <p><span>🍜 Konsumsi (${days} hari, ${pax} pax)</span> <span>${formatRupiah(totalMeals)}</span></p>
+            <p><span>🚕 Transportasi Lokal (${days} hari)</span> <span>${formatRupiah(totalTransport)}</span></p>
+            <p><span>🎒 Tiket Wisata & Aktivitas</span> <span>${formatRupiah(totalActivities)}</span></p>
+            <p><span>🛂 Visa & Lain-lain</span> <span>${formatRupiah(totalVisa + totalShopping)}</span></p>
+        `;
+
+        renderChart([totalFlight, totalHotel, totalMeals, totalTransport, totalActivities, (totalVisa + totalShopping)]);
+        document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderChart(dataValues) {
+        const ctx = document.getElementById('budgetChart').getContext('2d');
+        if (budgetChartInstance) {
+            budgetChartInstance.destroy();
+        }
+
+        budgetChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pesawat', 'Akomodasi', 'Konsumsi', 'Transport Lokal', 'Wisata', 'Lainnya'],
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: ['#3182ce', '#805ad5', '#38a169', '#dd6b20', '#e53e3e', '#718096'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: {
+                    duration: 0 // Matikan animasi biar grafik langsung jadi saat di-download PDF
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('pdfContent');
+        const btn = document.getElementById('downloadBtn');
+        
+        // Ubah teks tombol jadi loading
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Menyiapkan PDF...';
+        btn.disabled = true;
+
+        const opt = {
+            margin:       0.5,
+            filename:     `Travel_Budget_${currentDest.replace(/\s+/g, '_')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        // Render PDF
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Kembalikan tombol ke kondisi semula
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+</script>
+
+</body>
+</html>
