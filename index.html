@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Budget Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
@@ -100,13 +101,22 @@
             padding: 30px;
             background-color: var(--secondary);
             border-radius: 8px;
-            text-align: center;
             display: none;
         }
+        
+        /* FIX ALIGNMENT: Pastikan area PDF full width dan kontennya di tengah */
         .pdf-area {
             background-color: #fff;
-            padding: 20px;
+            padding: 30px 20px;
             border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 0 auto;
+            text-align: center; 
+        }
+        .pdf-area h2 {
+            margin-top: 0;
+            color: var(--text);
         }
         .total-cost {
             font-size: 2.5em;
@@ -115,19 +125,20 @@
             margin: 15px 0;
         }
         .chart-container {
-            max-width: 400px;
-            margin: 30px auto 0;
+            max-width: 450px;
+            margin: 40px auto 10px auto; /* Margin auto bikin chart selalu di tengah */
         }
         .rincian-list {
             text-align: left;
-            margin-top: 20px;
-            font-size: 0.9em;
+            margin: 20px auto 0 auto;
+            max-width: 600px; /* Dibatasi biar gak terlalu melebar */
+            font-size: 0.95em;
             color: #4a5568;
         }
         .rincian-list p {
-            margin: 5px 0;
+            margin: 8px 0;
             border-bottom: 1px dashed #cbd5e0;
-            padding-bottom: 5px;
+            padding-bottom: 8px;
             display: flex;
             justify-content: space-between;
         }
@@ -142,7 +153,7 @@
             <div class="section-title">📌 Informasi Dasar</div>
             <div class="form-group">
                 <label>Destinasi Trip</label>
-                <input type="text" id="destination" placeholder="Misal: Thailand" required>
+                <input type="text" id="destination" placeholder="Misal: Malaysia" required>
             </div>
             <div class="form-group">
                 <label>Durasi Trip (Hari)</label>
@@ -213,6 +224,9 @@
 </div>
 
 <script>
+    // Daftarkan plugin Datalabels ke Chart.js
+    Chart.register(ChartDataLabels);
+
     let budgetChartInstance = null;
     let currentDest = "";
 
@@ -264,11 +278,11 @@
             <p><span>🛂 Visa & Lain-lain</span> <span>${formatRupiah(totalVisa + totalShopping)}</span></p>
         `;
 
-        renderChart([totalFlight, totalHotel, totalMeals, totalTransport, totalActivities, (totalVisa + totalShopping)]);
+        renderChart([totalFlight, totalHotel, totalMeals, totalTransport, totalActivities, (totalVisa + totalShopping)], grandTotal);
         document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function renderChart(dataValues) {
+    function renderChart(dataValues, grandTotal) {
         const ctx = document.getElementById('budgetChart').getContext('2d');
         if (budgetChartInstance) {
             budgetChartInstance.destroy();
@@ -281,14 +295,28 @@
                 datasets: [{
                     data: dataValues,
                     backgroundColor: ['#3182ce', '#805ad5', '#38a169', '#dd6b20', '#e53e3e', '#718096'],
-                    borderWidth: 0
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
                 responsive: true,
                 animation: { duration: 0 },
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { 
+                        position: 'bottom',
+                        labels: { padding: 20 }
+                    },
+                    // Settingan plugin persentase
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 14 },
+                        formatter: (value) => {
+                            if (value === 0 || grandTotal === 0) return null; // Sembunyikan kalau 0%
+                            let percentage = ((value / grandTotal) * 100).toFixed(1) + '%';
+                            return percentage;
+                        }
+                    }
                 }
             }
         });
@@ -303,15 +331,16 @@
         btn.disabled = true;
 
         const opt = {
-            margin:       0.5,
+            margin:       [0.5, 0], // Margin atas/bawah 0.5, kiri/kanan 0 biar bisa ngisi full width
             filename:     `Travel_Budget_${currentDest.replace(/\s+/g, '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { 
                 scale: 2, 
                 useCORS: true,
-                scrollY: 0 
+                scrollY: 0,
+                windowWidth: element.scrollWidth // Memaksa canvas membaca lebar elemen sebenarnya
             },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
         setTimeout(() => {
